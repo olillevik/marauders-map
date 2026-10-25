@@ -1,69 +1,26 @@
-import type { AddressInfo } from 'node:net';
 import { afterEach, expect, it, vi } from 'vitest';
-import { createApp } from './app.ts';
+import {
+  CLIENT_SECRET,
+  EXPECTED_POSITIONS,
+  LATEST_POSITIONS_URL,
+  TOKEN_LIFETIME_SECONDS,
+  TOKEN_URL,
+  startApp,
+  stopApps,
+  stubBarentsWatch,
+} from './test-support.ts';
 
 // Checked against Kartverket's WMTS capabilities (GET https://cache.kartverket.no/v1/wmts/1.0.0/WMTSCapabilities.xml),
 // layer "topo", TileMatrixSet "webmercator" (EPSG:3857).
 const KARTVERKET_TOPO_TILES = 'https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/{z}/{y}/{x}.png';
 
-// BarentsWatch endpoints. The tests stub these URLs at the fetch boundary, so they must match the client.
-const TOKEN_URL = 'https://id.barentswatch.no/connect/token';
-const LATEST_POSITIONS_URL = 'https://live.ais.barentswatch.no/v1/latest/combined';
-const TOKEN_LIFETIME_SECONDS = 3600;
-
-const CLIENT_ID = 'test-client-id';
-const CLIENT_SECRET = 'test-client-secret-value';
 const START_TIME = Date.parse('2026-10-25T10:00:00Z');
-
-// Upstream items carry more fields than the route may return.
-const UPSTREAM_POSITIONS = [
-  { mmsi: 257012340, name: 'TEST VESSEL ONE', latitude: 69.6492, longitude: 18.9553, speed: 7.2, course: 90 },
-  { mmsi: 259000002, name: 'TEST VESSEL TWO', latitude: 60.3913, longitude: 5.3221, speed: 0, course: 0 },
-];
-const EXPECTED_POSITIONS = [
-  { mmsi: 257012340, latitude: 69.6492, longitude: 18.9553 },
-  { mmsi: 259000002, latitude: 60.3913, longitude: 5.3221 },
-];
-
-const realFetch = globalThis.fetch;
-const stops: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  await Promise.all(stops.splice(0).map((stop) => stop()));
+  await stopApps();
 });
-
-async function startApp(): Promise<string> {
-  const server = await createApp({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address() as AddressInfo;
-  stops.push(async () => {
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
-  });
-  return `http://127.0.0.1:${port}`;
-}
-
-// Replaces the BarentsWatch endpoints. Requests to the local server pass through to the real fetch.
-function stubBarentsWatch(overrides: { token?: () => Response; positions?: () => Response } = {}) {
-  let tokenRequests = 0;
-  const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
-    const url = String(input);
-    if (url === TOKEN_URL) {
-      tokenRequests += 1;
-      if (overrides.token) return overrides.token();
-      return Response.json({ access_token: `token-${tokenRequests}`, token_type: 'Bearer', expires_in: TOKEN_LIFETIME_SECONDS });
-    }
-    if (url === LATEST_POSITIONS_URL) {
-      if (overrides.positions) return overrides.positions();
-      return Response.json(UPSTREAM_POSITIONS);
-    }
-    return realFetch(input, init);
-  });
-  vi.stubGlobal('fetch', fetchMock);
-  return fetchMock;
-}
 
 function callsTo(fetchMock: ReturnType<typeof stubBarentsWatch>, url: string) {
   return fetchMock.mock.calls.filter(([input]) => String(input) === url);
@@ -106,7 +63,7 @@ it('requests a token with the client ID, client secret and ais scope', async () 
   const body = new URLSearchParams(String(tokenCall[1]?.body));
   expect(tokenCall[1]?.method).toBe('POST');
   expect(body.get('grant_type')).toBe('client_credentials');
-  expect(body.get('client_id')).toBe(CLIENT_ID);
+  expect(body.get('client_id')).toBe('test-client-id');
   expect(body.get('client_secret')).toBe(CLIENT_SECRET);
   expect(body.get('scope')).toBe('ais');
 });

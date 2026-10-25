@@ -4,13 +4,16 @@
   "type": "module",
   "scripts": {
     "dev": "sh scripts/with-keychain-secret.sh node --env-file-if-exists=.env src/server/dev.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:full": "sh scripts/with-keychain-secret.sh node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --mode full",
+    "prepare": "husky"
   },
   "dependencies": {
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.22",
+    "husky": "^9.1.7",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   }
