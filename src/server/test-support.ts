@@ -1,9 +1,8 @@
 import type { AddressInfo } from 'node:net';
 import { vi } from 'vitest';
 import { createApp } from './app.ts';
+import { TOKEN_URL } from './barentswatch.ts';
 
-// BarentsWatch endpoints. The tests stub these URLs at the fetch boundary, so they must match the client.
-export const TOKEN_URL = 'https://id.barentswatch.no/connect/token';
 export const LATEST_POSITIONS_URL = 'https://live.ais.barentswatch.no/v1/latest/combined';
 export const TOKEN_LIFETIME_SECONDS = 3600;
 
@@ -11,7 +10,7 @@ export const CLIENT_ID = 'test-client-id';
 export const CLIENT_SECRET = 'test-client-secret-value';
 
 // Upstream items carry more fields than the route may return.
-export const UPSTREAM_POSITIONS = [
+const UPSTREAM_POSITIONS = [
   { mmsi: 257012340, name: 'TEST VESSEL ONE', latitude: 69.6492, longitude: 18.9553, speed: 7.2, course: 90 },
   { mmsi: 259000002, name: 'TEST VESSEL TWO', latitude: 60.3913, longitude: 5.3221, speed: 0, course: 0 },
 ];
@@ -40,7 +39,7 @@ export async function stopApps(): Promise<void> {
 }
 
 // Replaces the BarentsWatch endpoints. Requests to the local server pass through to the real fetch.
-export function stubBarentsWatch(overrides: { token?: () => Response; positions?: () => Response } = {}) {
+export function stubBarentsWatch(overrides: { token?: () => Response | Promise<Response>; positions?: () => Response } = {}) {
   let tokenRequests = 0;
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = String(input);

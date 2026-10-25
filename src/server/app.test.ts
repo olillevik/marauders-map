@@ -1,10 +1,10 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { TOKEN_URL } from './barentswatch.ts';
 import {
   CLIENT_SECRET,
   EXPECTED_POSITIONS,
   LATEST_POSITIONS_URL,
   TOKEN_LIFETIME_SECONDS,
-  TOKEN_URL,
   startApp,
   stopApps,
   stubBarentsWatch,
@@ -78,6 +78,43 @@ it('reuses the token within its lifetime', async () => {
   expect(first.status).toBe(200);
   expect(second.status).toBe(200);
   expect(callsTo(fetchMock, TOKEN_URL)).toHaveLength(1);
+});
+
+it('shares one token request between concurrent first requests', async () => {
+  // Delays the token response so both requests start before it arrives.
+  const fetchMock = stubBarentsWatch({
+    token: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return Response.json({ access_token: 'token-1', token_type: 'Bearer', expires_in: TOKEN_LIFETIME_SECONDS });
+    },
+  });
+  const base = await startApp();
+
+  const [first, second] = await Promise.all([fetch(`${base}/api/vessel-positions`), fetch(`${base}/api/vessel-positions`)]);
+
+  expect(first.status).toBe(200);
+  expect(second.status).toBe(200);
+  expect(callsTo(fetchMock, TOKEN_URL)).toHaveLength(1);
+});
+
+it('retries the token request after BarentsWatch refuses one', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  let tokenRequests = 0;
+  const fetchMock = stubBarentsWatch({
+    token: () => {
+      tokenRequests += 1;
+      if (tokenRequests === 1) return new Response('refused', { status: 503 });
+      return Response.json({ access_token: 'token-2', token_type: 'Bearer', expires_in: TOKEN_LIFETIME_SECONDS });
+    },
+  });
+  const base = await startApp();
+
+  const refused = await fetch(`${base}/api/vessel-positions`);
+  const retried = await fetch(`${base}/api/vessel-positions`);
+
+  expect(refused.status).toBe(502);
+  expect(retried.status).toBe(200);
+  expect(callsTo(fetchMock, TOKEN_URL)).toHaveLength(2);
 });
 
 it('fetches a new token after the first one expires', async () => {

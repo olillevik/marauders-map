@@ -27,6 +27,6 @@ Never publish a ticket as a standalone issue. Every ticket is a sub-issue of the
 
 ## BarentsWatch client secret
 
-`npm run dev` runs through `scripts/with-keychain-secret.sh`. The wrapper reads the client secret from the macOS keychain (service `barentswatch-ais`, account `client_secret`) and passes it to the server as `BARENTSWATCH_CLIENT_SECRET`. The secret is never printed, logged, or saved to a file. Keep it out of command output, logs, and `.env`.
+`npm run dev` runs through `scripts/with-keychain-secret.sh`. `npm run test:full` also runs through the wrapper. The wrapper reads the client secret from the macOS keychain (service `barentswatch-ais`, account `client_secret`) and passes it to the server as `BARENTSWATCH_CLIENT_SECRET`. The secret is never printed, logged, or saved to a file. Keep it out of command output, logs, and `.env`. The Husky pre-commit hook runs `npm run test:full` on every commit. That run includes one real BarentsWatch smoketest, which makes two HTTP requests.
 
 The client ID is not secret. It goes in `.env`, which is gitignored. `.env.example` shows the variable.

@@ -1,5 +1,5 @@
 // Endpoints as documented by BarentsWatch. The client secret is sent only to the token endpoint.
-const TOKEN_URL = 'https://id.barentswatch.no/connect/token';
+export const TOKEN_URL = 'https://id.barentswatch.no/connect/token';
 const LATEST_POSITIONS_URL = 'https://live.ais.barentswatch.no/v1/latest/combined';
 
 export interface BarentsWatchCredentials {
@@ -20,12 +20,21 @@ interface CachedToken {
 
 export function createBarentsWatchClient(credentials: BarentsWatchCredentials) {
   let cached: CachedToken | undefined;
+  let inFlight: Promise<string> | undefined;
 
   async function accessToken(): Promise<string> {
     if (cached && Date.now() < cached.expiresAt) {
       return cached.value;
     }
 
+    // Concurrent callers share one request. finally clears it on success and on failure, so a failed request is retried.
+    inFlight ??= fetchToken().finally(() => {
+      inFlight = undefined;
+    });
+    return inFlight;
+  }
+
+  async function fetchToken(): Promise<string> {
     const res = await fetch(TOKEN_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
