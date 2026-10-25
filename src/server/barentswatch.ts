@@ -1,6 +1,6 @@
 // Endpoints as documented by BarentsWatch. The client secret is sent only to the token endpoint.
 export const TOKEN_URL = 'https://id.barentswatch.no/connect/token';
-const LATEST_POSITIONS_URL = 'https://live.ais.barentswatch.no/v1/latest/combined';
+export const LATEST_POSITIONS_URL = 'https://live.ais.barentswatch.no/v1/latest/combined';
 
 export interface BarentsWatchCredentials {
   clientId: string;

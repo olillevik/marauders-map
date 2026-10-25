@@ -1,9 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { TOKEN_URL } from './barentswatch.ts';
+import { LATEST_POSITIONS_URL, TOKEN_URL } from './barentswatch.ts';
 import {
   CLIENT_SECRET,
   EXPECTED_POSITIONS,
-  LATEST_POSITIONS_URL,
   TOKEN_LIFETIME_SECONDS,
   startApp,
   stopApps,

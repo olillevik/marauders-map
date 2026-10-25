@@ -1,9 +1,8 @@
 import type { AddressInfo } from 'node:net';
 import { vi } from 'vitest';
 import { createApp } from './app.ts';
-import { TOKEN_URL } from './barentswatch.ts';
+import { LATEST_POSITIONS_URL, TOKEN_URL } from './barentswatch.ts';
 
-export const LATEST_POSITIONS_URL = 'https://live.ais.barentswatch.no/v1/latest/combined';
 export const TOKEN_LIFETIME_SECONDS = 3600;
 
 export const CLIENT_ID = 'test-client-id';

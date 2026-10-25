@@ -14,5 +14,5 @@ The Maritime Mobile Service Identity, the identifier that each AIS position repo
 **AIS**:
 The Automatic Identification System, through which vessels broadcast their position reports.
 
-**Current location**:
-The most recent position a vessel has reported. No age limit applies yet, so an old position still counts as the current location.
+**Position**:
+The most recent position a vessel has reported. No age limit applies yet, so an old position still counts as the vessel's position.
