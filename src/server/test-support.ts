@@ -38,7 +38,9 @@ export async function stopApps(): Promise<void> {
 }
 
 // Replaces the BarentsWatch endpoints. Requests to the local server pass through to the real fetch.
-export function stubBarentsWatch(overrides: { token?: () => Response | Promise<Response>; positions?: () => Response } = {}) {
+export function stubBarentsWatch(
+  overrides: { token?: () => Response | Promise<Response>; positions?: () => Response | Promise<Response> } = {},
+) {
   let tokenRequests = 0;
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = String(input);

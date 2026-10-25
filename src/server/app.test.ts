@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { LATEST_POSITIONS_URL, TOKEN_URL } from './barentswatch.ts';
+import { LATEST_POSITIONS_TTL_MS, LATEST_POSITIONS_URL, TOKEN_URL } from './barentswatch.ts';
 import {
   CLIENT_SECRET,
   EXPECTED_POSITIONS,
@@ -68,15 +68,19 @@ it('requests a token with the client ID, client secret and ais scope', async () 
 });
 
 it('reuses the token within its lifetime', async () => {
+  const now = vi.spyOn(Date, 'now').mockReturnValue(START_TIME);
   const fetchMock = stubBarentsWatch();
   const base = await startApp();
 
   const first = await fetch(`${base}/api/vessel-positions`);
+  // Past the positions window but inside the token lifetime, so only the positions are fetched again.
+  now.mockReturnValue(START_TIME + LATEST_POSITIONS_TTL_MS);
   const second = await fetch(`${base}/api/vessel-positions`);
 
   expect(first.status).toBe(200);
   expect(second.status).toBe(200);
   expect(callsTo(fetchMock, TOKEN_URL)).toHaveLength(1);
+  expect(callsTo(fetchMock, LATEST_POSITIONS_URL)).toHaveLength(2);
 });
 
 it('shares one token request between concurrent first requests', async () => {
@@ -129,6 +133,70 @@ it('fetches a new token after the first one expires', async () => {
   expect(callsTo(fetchMock, TOKEN_URL)).toHaveLength(2);
   const [, lastInit] = callsTo(fetchMock, LATEST_POSITIONS_URL).at(-1) ?? [];
   expect(new Headers(lastInit?.headers).get('authorization')).toBe('Bearer token-2');
+});
+
+it('answers repeat requests within 10 minutes from the cache', async () => {
+  const now = vi.spyOn(Date, 'now').mockReturnValue(START_TIME);
+  const fetchMock = stubBarentsWatch();
+  const base = await startApp();
+
+  const first = await fetch(`${base}/api/vessel-positions`);
+  now.mockReturnValue(START_TIME + LATEST_POSITIONS_TTL_MS - 1000);
+  const second = await fetch(`${base}/api/vessel-positions`);
+
+  expect(first.status).toBe(200);
+  expect(await second.json()).toEqual(EXPECTED_POSITIONS);
+  expect(callsTo(fetchMock, LATEST_POSITIONS_URL)).toHaveLength(1);
+});
+
+it('fetches the latest positions again once 10 minutes have passed', async () => {
+  const now = vi.spyOn(Date, 'now').mockReturnValue(START_TIME);
+  const fetchMock = stubBarentsWatch();
+  const base = await startApp();
+
+  await fetch(`${base}/api/vessel-positions`);
+  now.mockReturnValue(START_TIME + LATEST_POSITIONS_TTL_MS);
+  const res = await fetch(`${base}/api/vessel-positions`);
+
+  expect(res.status).toBe(200);
+  expect(callsTo(fetchMock, LATEST_POSITIONS_URL)).toHaveLength(2);
+});
+
+it('does not cache a failed latest positions request', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  let positionRequests = 0;
+  const fetchMock = stubBarentsWatch({
+    positions: () => {
+      positionRequests += 1;
+      if (positionRequests === 1) return new Response('unavailable', { status: 503 });
+      return Response.json(EXPECTED_POSITIONS);
+    },
+  });
+  const base = await startApp();
+
+  const failed = await fetch(`${base}/api/vessel-positions`);
+  const retried = await fetch(`${base}/api/vessel-positions`);
+
+  expect(failed.status).toBe(502);
+  expect(retried.status).toBe(200);
+  expect(callsTo(fetchMock, LATEST_POSITIONS_URL)).toHaveLength(2);
+});
+
+it('shares one latest positions request between concurrent requests', async () => {
+  // Delays the positions response so both requests start before it arrives.
+  const fetchMock = stubBarentsWatch({
+    positions: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return Response.json(EXPECTED_POSITIONS);
+    },
+  });
+  const base = await startApp();
+
+  const [first, second] = await Promise.all([fetch(`${base}/api/vessel-positions`), fetch(`${base}/api/vessel-positions`)]);
+
+  expect(first.status).toBe(200);
+  expect(second.status).toBe(200);
+  expect(callsTo(fetchMock, LATEST_POSITIONS_URL)).toHaveLength(1);
 });
 
 it('responds 502 when BarentsWatch refuses the token request', async () => {
