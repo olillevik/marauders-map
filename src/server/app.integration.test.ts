@@ -9,7 +9,7 @@ afterEach(async () => {
 });
 
 // The browser client calls the route by its path, so the test resolves that path against the running server.
-const browserFetch = (base: string) => (path: string) => fetch(`${base}${path}`);
+const browserFetch = (base: string): typeof fetch => (path) => fetch(`${base}${path}`);
 
 it('the browser client reads vessel positions from the running server', async () => {
   stubBarentsWatch();
