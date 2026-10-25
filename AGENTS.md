@@ -24,3 +24,9 @@ Never publish a ticket as a standalone issue. Every ticket is a sub-issue of the
 - Publish tickets in dependency order, blockers first, as `/to-tickets` requires.
 - Do not change the parent issue's body.
 - The parent issue may be closed once all its sub-issues are closed. This overrides the `/to-tickets` rule that the parent is never closed.
+
+## BarentsWatch client secret
+
+`npm run dev` runs through `scripts/with-keychain-secret.sh`. The wrapper reads the client secret from the macOS keychain (service `barentswatch-ais`, account `client_secret`) and passes it to the server as `BARENTSWATCH_CLIENT_SECRET`. The secret is never printed, logged, or saved to a file. Keep it out of command output, logs, and `.env`.
+
+The client ID is not secret. It goes in `.env`, which is gitignored. `.env.example` shows the variable.
