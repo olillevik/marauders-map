@@ -1,6 +1,11 @@
 # Dependencies
 node_modules/
 
+# Build output and Wrangler state
+dist/
+.wrangler/
+.dev.vars*
+
 # OS and editor files
 .DS_Store
 .idea/

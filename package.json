@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "sh scripts/with-keychain-secret.sh node --env-file-if-exists=.env src/server/dev.ts",
+    "build": "vite build",
     "test": "vitest run",
     "test:full": "sh scripts/with-keychain-secret.sh node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --mode full",
     "prepare": "husky"
@@ -12,9 +13,11 @@
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.65.0",
     "@types/leaflet": "^1.9.22",
     "husky": "^9.1.7",
     "vite": "^8.3.5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.152.0"
   }
 }

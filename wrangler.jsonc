@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "marauders-map",
+  "compatibility_date": "2026-10-25",
+  "main": "./src/worker/index.ts",
+  "assets": {
+    "run_worker_first": ["/api/*"]
+  }
+}
