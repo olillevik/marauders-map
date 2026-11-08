@@ -16,7 +16,7 @@
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.65.0",
+    "@cloudflare/vite-plugin": "^1.67.0",
     "@eslint/js": "^10.0.1",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^26.6.5",
